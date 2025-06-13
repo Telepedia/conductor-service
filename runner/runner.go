@@ -61,6 +61,7 @@ func StartRunner() {
 	// Declare the topic exchange, this will handle routing job types to the correct queues
 	exchangeName := utils.Config.RabbitMQ.ExchangeName
 	if exchangeName == "" {
+		// @TODO: pull this from config
 		exchangeName = "mediawiki.jobs"
 	}
 
@@ -133,6 +134,7 @@ func StartRunner() {
 	// We only need 1 worker for the low priority queue, these will be consumed when there is nothing else to do
 	lowWorkers := utils.Config.Workers.LowPriority
 	if lowWorkers == 0 {
+		// @TODO: potentially pull this from config if we want more workers for the low priorty q?
 		lowWorkers = 1
 	}
 	for i := 0; i < lowWorkers; i++ {
@@ -142,6 +144,7 @@ func StartRunner() {
 
 	// Start ignored queue consumer, again, we only need 1 worker for this
 	// these jobs will not be processed, so it doesn't really matter
+	// @TODO: as above
 	wg.Add(1)
 	go startIgnoredConsumer(conn, ignoredQueue, &wg)
 
@@ -204,7 +207,12 @@ func startConsumer(conn *amqp.Connection, queueName, priority string, workerID i
 		if handleJob(routingKey, jobData, priority, workerID) {
 			msg.Ack(false)
 		} else {
-			msg.Nack(false, true) // Nack and requeue if the job failed
+			// Nack and requeue if the job failed, this will
+			// put the job back into the queue to be retried at a later time
+			// this doesn't really have any impact on MediaWiki side of things since we won't
+			// be tracking the number of jobs from MediaWiki - once a job is dispatched to the queue, MediaWiki
+			// has no knowledge of it from that point (can probably fix that maybe?!)
+			msg.Nack(false, true)
 		}
 	}
 
@@ -247,9 +255,8 @@ func startNormalConsumer(conn *amqp.Connection, queueName, priority string, work
 	for msg := range msgs {
 		routingKey := msg.RoutingKey
 
-		// Quick check: skip if this job belongs to a specific queue
+		// hacky check: skip if this job belongs to a specific queue
 		if utils.GetJobPriority(routingKey) != "normal" {
-			// Job belongs to a specific queue, just acknowledge and skip
 			log.Printf("[%s-%d] Skipping %s (belongs to a specific queue)", priority, workerID, routingKey)
 			msg.Ack(false)
 			continue
