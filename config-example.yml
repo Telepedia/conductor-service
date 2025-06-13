@@ -1,0 +1,30 @@
+# Where RabbitMQ is running, and any authentication that may be required for Conductor to connect
+rabbitmq:
+  host: "localhost"
+  port: 5672
+  user: "guest"
+  pass: "password123" 
+  # this is the name of the exchange that jobs are sent to from MediaWiki
+  exchange_name: "mediawiki.jobs"
+
+mediawiki:
+  # this is the endpoint where Conductor should send the jobs to be processed by MediaWiki
+  # this must be exposed as an endpoint in the MediaWiki environment, ie, /var/www/html/mediawiki/rabbit/RunJob.php
+  job_path: "http://localhost:80/rabbit/RunJob.php"
+
+# Below are the queue definitions of which jobs should be in which queues
+# any job that doesn't match a low/high priority and is not ignored, will be processed
+# by the normal priority queue
+queues:
+  high_priority:
+    - mediawiki.job.CreateWikiJob
+  normal_priority:
+    - mediawiki.job.recentChangesUpdate
+  low_priority:
+    - mediawiki.job.htmlCacheUpdate
+    - mediawiki.job.refreshLinks
+  ignored:
+    - mediawiki.job.ExampleJobToBeIgnored
+
+workers:
+  per_queue: 3

@@ -4,6 +4,7 @@
 Whilst the Redis backed queue is generally well behaved, it struggles when there are many different jobs and is often prone to errors and is sometimes slow. RabbitMQ provides a simple way to run jobs without the added complexity of running EventBus/EventGate and a Kafka cluster. The consumer (this service) is written in Go. It listens for jobs sent to any number of channels, and executes those jobs by calling out to a `.php` script running on Telepedia's internal cluster, MediaWiki takes over handling the job from there; once the job has been completed, a `200` code is returned back to Conductor, which acknowledges that the job has been completed and it is deleted from the RabbitMQ channel. 
 
 ### Configuration
+See `config-example.yml` for an example configuration file; this must be placed in the same directory as the compiled binary, and **must be** named `config.yml`.
 
 ### License
 This project is licensed under the Apache License, Version 2.0. You may obtain a copy of the license at http://www.apache.org/licenses/LICENSE-2.0.
