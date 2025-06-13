@@ -27,3 +27,23 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Send result to Discord
+      if: always()
+      run: |
+        if [ "$GITHUB_RUN_ATTEMPT" == "1" ]; then
+          STATUS="✅ Passed"
+        else
+          STATUS="❌ Failed"
+        fi
+
+        if [ "${{ job.status }}" == "success" ]; then
+          STATUS="✅ Passed"
+        else
+          STATUS="❌ Failed"
+        fi
+
+        curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{\"content\": \"GitHub Actions CI result for **${{ github.repository }}** on branch \`${{ github.ref_name }}\`: **$STATUS**\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}>\"}" \
+          ${{ secrets.DISCORD_WEBHOOK }}
